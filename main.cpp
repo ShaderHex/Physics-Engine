@@ -37,8 +37,13 @@ struct StaticLine {
     Color color;
 };
 
+struct PhysicsCollision {
+    glm::vec4 position;
+};
+
 std::vector<PhysicsCircle> circles;
 std::vector<StaticLine> lines;
+std::vector<PhysicsCollision> collision;
 
 glm::mat4 CreateCamera(float screenWid, float screenHei) {
     return glm::ortho(0.0f, screenWid, 0.0f, screenHei);
@@ -246,6 +251,13 @@ void createStaticLine(float lineX1, float lineY1, float lineX2, float lineY2, Co
     lines.push_back(l);
 }
 
+void createCollision(float posX1, float posY1, float posX2, float posY2) {
+    PhysicsCollision pc;
+    pc.position = glm::vec4(posX1, posY1, posX2, posY2);
+
+    collision.push_back(pc);
+}
+
 void updatePhysicsObjects() {
     glm::vec2 gravity(0.0f, -1200.0f);
 
@@ -255,7 +267,13 @@ void updatePhysicsObjects() {
 
         for (auto& l : lines) {
             float floorY = l.position.y;
-            if (c.position.y - c.radius < floorY) {
+            float floorX1 = l.position.x;
+            float floorX2 = l.position.z;
+
+            if (c.position.y - c.radius < floorY &&
+                c.position.x + c.radius > floorX1 &&
+                c.position.x - c.radius < floorX2)
+            {
                 c.position.y = floorY + c.radius;
                 c.velocity.y *= -0.7f;
 
@@ -265,7 +283,6 @@ void updatePhysicsObjects() {
         }
     }
 }
-
 
 int main() {
     StaticLine l;
@@ -290,12 +307,13 @@ int main() {
     GLuint shaderProgram = createShaderProgram();
 
     glClearColor(0.2, 0.3, 0.3, 1);
+    int lineX1 = 10, lineY1 = 300, lineX2 = 300, lineY2 = 300;
+    createPhysicsCircle(300, 600, 100, {1, 0, 1, 1});
+    createPhysicsCircle(300, 600, 100, {1, 0, 1, 1});
+    createStaticLine(lineX1, lineY1, lineX2, lineY2, {0, 1, 0, 1}, l);
+    createCollision(lineX1, lineY1, lineX2, lineY2);
+    //createStaticLine(10, 200, 300, 300, {0, 1, 0, 1}, l);
     
-    createPhysicsCircle(300, 600, 100, {1, 0, 1, 1});
-    createPhysicsCircle(300, 600, 100, {1, 0, 1, 1});
-    createStaticLine(10, 300, 300, 300, {0, 1, 0, 1}, l);
-    createStaticLine(10, 200, 300, 300, {0, 1, 0, 1}, l);
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -336,14 +354,22 @@ int main() {
             int circleIndex = 0;
             for (auto& c : circles) {
                 ImGui::Text("Circle %d Position", circleIndex);
-                ImGui::SliderFloat(("Y##" + std::to_string(circleIndex)).c_str(), &c.position.y, 0, 801);
-                ImGui::SliderFloat(("X##" + std::to_string(circleIndex)).c_str(), &c.position.x, 0, 1601);
+                ImGui::SliderFloat(("C Y##" + std::to_string(circleIndex)).c_str(), &c.position.y, 0, 801);
+                ImGui::SliderFloat(("C X##" + std::to_string(circleIndex)).c_str(), &c.position.x, 0, 1601);
                 circleIndex++;
             }
 
 
             for (auto& l : lines) {
                 ImGui::Text("Line Position");
+            }
+
+            int collisionIndex = 0;
+            for (auto& pc : collision) {
+                pc.position.x = lineX1;
+                ImGui::Text("Collision %d Position", collisionIndex);
+                ImGui::SliderFloat(("PC Y##" + std::to_string(collisionIndex)).c_str(), &pc.position.y, 0, 801);
+                ImGui::SliderFloat(("PC X##" + std::to_string(collisionIndex)).c_str(), &pc.position.x, 0, 1601);
             }
 
         ImGui::End();
